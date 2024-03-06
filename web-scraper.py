@@ -8,6 +8,8 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
+import time
+from random import randint
 
 # NLP Imports
 import nltk
@@ -16,7 +18,7 @@ nltk.download('stopwords')
 from nltk.tokenize import RegexpTokenizer
 from nltk.stem import WordNetLemmatizer
 from nltk.corpus import stopwords
-import re
+import requests
 
 from sklearn.feature_extraction.text import CountVectorizer
 
@@ -25,7 +27,7 @@ from PIL import Image
 import wordninja
 
 # creating user agent
-headers = {"User-agent" : "randomuser"} # set user agent to reddit account username
+headers = {"User-agent" : "user"} # set user agent to reddit account username
 url_1 = "https://www.reddit.com/r/depression.json"
 
 res = requests.get(url_1, headers=headers)
@@ -43,19 +45,23 @@ def reddit_scrape(url_string, number_of_scrapes, output_list):
         elif (_+1) % 5 ==0:
             print("Downloading Batch {} of {}...".format((_ + 1), number_of_scrapes))
         
-        if after == None:
-            params = {}
-        else:
-            #THIS WILL TELL THE SCRAPER TO GET THE NEXT SET AFTER REDDIT'S after CODE
-            params = {"after": after}             
-        res = requests.get(url_string, params=params, headers=headers)
-        if res.status_code == 200:
-            the_json = res.json()
-            output_list.extend(the_json["data"]["children"])
-            after = the_json["data"]["after"]
-        else:
-            print(res.status_code)
-            break
+        try:
+            if after is None:
+                params = {}
+            else:
+                params = {"after": after}
+            res = requests.get(url_string, params=params, headers=headers)
+            if res.status_code == 200:
+                the_json = res.json()
+                output_list.extend(the_json["data"]["children"])
+                after = the_json["data"]["after"]
+            else:
+                print(f"Error: {res.status_code}")
+                break
+        except requests.exceptions.ConnectionError:
+            print("Connection error encountered. Waiting longer before retrying...")
+            time.sleep(60)  # Wait for 60 seconds before retrying
+            continue  # Retry the current iteration of the loop
         time.sleep(randint(1,6))
     
     print("<<<SCRAPING COMPLETED>>>")
